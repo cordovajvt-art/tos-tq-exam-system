@@ -28,6 +28,7 @@ export function createDatabase(filename = process.env.DATABASE_PATH || './data/e
       course_title TEXT NOT NULL,
       exam_type TEXT NOT NULL,
       department TEXT NOT NULL,
+      academic_area TEXT NOT NULL DEFAULT 'Biology and Chemistry',
       copies INTEGER NOT NULL CHECK(copies BETWEEN 1 AND 1000),
       pages INTEGER NOT NULL CHECK(pages BETWEEN 1 AND 100),
       exam_date TEXT NOT NULL,
@@ -43,10 +44,14 @@ export function createDatabase(filename = process.env.DATABASE_PATH || './data/e
       tos_evaluating INTEGER NOT NULL DEFAULT 10,
       tos_creating INTEGER NOT NULL DEFAULT 10,
       coordinator_name TEXT NOT NULL DEFAULT '',
-      coordinator_notes TEXT NOT NULL DEFAULT '',
+      coordinator_tos_comment TEXT NOT NULL DEFAULT '',
+      coordinator_tq_comment TEXT NOT NULL DEFAULT '',
+      coordinator_signature TEXT NOT NULL DEFAULT '',
       coordinator_approved_at TEXT,
       dean_name TEXT NOT NULL DEFAULT '',
-      dean_notes TEXT NOT NULL DEFAULT '',
+      dean_tos_comment TEXT NOT NULL DEFAULT '',
+      dean_tq_comment TEXT NOT NULL DEFAULT '',
+      dean_signature TEXT NOT NULL DEFAULT '',
       dean_approved_at TEXT,
       status TEXT NOT NULL DEFAULT 'Submitted',
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -68,11 +73,12 @@ export function createDatabase(filename = process.env.DATABASE_PATH || './data/e
 function migrate(db) {
   const columns = new Set(db.prepare('PRAGMA table_info(requests)').all().map((column) => column.name));
   const additions = {
+    academic_area: "TEXT NOT NULL DEFAULT 'Biology and Chemistry'",
     tos_outcomes: "TEXT NOT NULL DEFAULT ''", tos_coverage: "TEXT NOT NULL DEFAULT ''", tos_total_items: 'INTEGER NOT NULL DEFAULT 50',
     tos_remembering: 'INTEGER NOT NULL DEFAULT 20', tos_understanding: 'INTEGER NOT NULL DEFAULT 20', tos_applying: 'INTEGER NOT NULL DEFAULT 20',
     tos_analyzing: 'INTEGER NOT NULL DEFAULT 20', tos_evaluating: 'INTEGER NOT NULL DEFAULT 10', tos_creating: 'INTEGER NOT NULL DEFAULT 10',
-    coordinator_name: "TEXT NOT NULL DEFAULT ''", coordinator_notes: "TEXT NOT NULL DEFAULT ''", coordinator_approved_at: 'TEXT',
-    dean_name: "TEXT NOT NULL DEFAULT ''", dean_notes: "TEXT NOT NULL DEFAULT ''", dean_approved_at: 'TEXT',
+    coordinator_name: "TEXT NOT NULL DEFAULT ''", coordinator_tos_comment: "TEXT NOT NULL DEFAULT ''", coordinator_tq_comment: "TEXT NOT NULL DEFAULT ''", coordinator_signature: "TEXT NOT NULL DEFAULT ''", coordinator_approved_at: 'TEXT',
+    dean_name: "TEXT NOT NULL DEFAULT ''", dean_tos_comment: "TEXT NOT NULL DEFAULT ''", dean_tq_comment: "TEXT NOT NULL DEFAULT ''", dean_signature: "TEXT NOT NULL DEFAULT ''", dean_approved_at: 'TEXT',
   };
   for (const [name, definition] of Object.entries(additions)) if (!columns.has(name)) db.exec(`ALTER TABLE requests ADD COLUMN ${name} ${definition}`);
   db.prepare("UPDATE requests SET status='Area Coordinator Review' WHERE status='Under Review'").run();
@@ -91,5 +97,5 @@ function seed(db) {
 }
 
 export function toRequest(row) {
-  return { id: row.id, reference: row.reference, courseCode: row.course_code, courseTitle: row.course_title, examType: row.exam_type, department: row.department, copies: row.copies, pages: row.pages, examDate: row.exam_date, neededBy: row.needed_by, notes: row.notes, tos: { outcomes: row.tos_outcomes, coverage: row.tos_coverage, totalItems: row.tos_total_items, remembering: row.tos_remembering, understanding: row.tos_understanding, applying: row.tos_applying, analyzing: row.tos_analyzing, evaluating: row.tos_evaluating, creating: row.tos_creating }, approvals: { coordinator: { name: row.coordinator_name, notes: row.coordinator_notes, approvedAt: row.coordinator_approved_at }, dean: { name: row.dean_name, notes: row.dean_notes, approvedAt: row.dean_approved_at } }, status: row.status, createdAt: row.created_at, updatedAt: row.updated_at };
+  return { id: row.id, reference: row.reference, courseCode: row.course_code, courseTitle: row.course_title, examType: row.exam_type, department: row.department, academicArea: row.academic_area, copies: row.copies, pages: row.pages, examDate: row.exam_date, neededBy: row.needed_by, notes: row.notes, tos: { outcomes: row.tos_outcomes, coverage: row.tos_coverage, totalItems: row.tos_total_items, remembering: row.tos_remembering, understanding: row.tos_understanding, applying: row.tos_applying, analyzing: row.tos_analyzing, evaluating: row.tos_evaluating, creating: row.tos_creating }, approvals: { coordinator: { name: row.coordinator_name, tosComment: row.coordinator_tos_comment, tqComment: row.coordinator_tq_comment, signature: row.coordinator_signature, approvedAt: row.coordinator_approved_at }, dean: { name: row.dean_name, tosComment: row.dean_tos_comment, tqComment: row.dean_tq_comment, signature: row.dean_signature, approvedAt: row.dean_approved_at } }, status: row.status, createdAt: row.created_at, updatedAt: row.updated_at };
 }

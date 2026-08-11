@@ -1,6 +1,7 @@
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => [...document.querySelectorAll(selector)];
 let requests = [];
+let currentRole = 'faculty';
 
 const api = async (path, options = {}) => {
   const response = await fetch(`/api${path}`, {
@@ -22,6 +23,35 @@ function showView(name) {
   $('.sidebar').classList.remove('open');
   if (name === 'requests') renderTable();
   window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+const roleConfig = {
+  biology: { title: 'Biology & Chemistry Area Coordinator', area: 'Biology and Chemistry', status: 'Area Coordinator Review' },
+  mathematics: { title: 'Mathematics & Physics Area Coordinator', area: 'Mathematics and Physics', status: 'Area Coordinator Review' },
+  dean: { title: 'Dean Dashboard', area: null, status: 'Dean Review' },
+};
+
+function openRoleDashboard(role) {
+  currentRole = role;
+  const config = roleConfig[role];
+  showView('review');
+  $$('.nav-item').forEach((item) => item.classList.toggle('active', item.dataset.role === role));
+  $('#page-title').textContent = config.title;
+  $('#review-title').textContent = config.title;
+  $('#review-description').textContent = role === 'dean' ? 'Give final academic approval to coordinator-endorsed TOS and TQ submissions.' : `Review faculty TOS and TQ submissions assigned to the ${config.area} area.`;
+  $('#review-role-badge').textContent = role === 'dean' ? 'Dean' : 'Area Coordinator';
+  renderReviewDashboard();
+}
+
+function renderReviewDashboard() {
+  const config = roleConfig[currentRole];
+  if (!config) return;
+  const assigned = requests.filter((r) => !config.area || r.academicArea === config.area);
+  const pending = assigned.filter((r) => r.status === config.status);
+  const endorsed = currentRole === 'dean' ? assigned.filter((r) => r.approvals?.dean?.approvedAt).length : assigned.filter((r) => r.approvals?.coordinator?.approvedAt).length;
+  $('#review-pending').textContent = pending.length;
+  $('#review-stats').innerHTML = `<article class="stat"><span>Assigned submissions</span><strong>${assigned.length}</strong></article><article class="stat"><span>Awaiting my review</span><strong>${pending.length}</strong></article><article class="stat"><span>Approved by me</span><strong>${endorsed}</strong></article><article class="stat"><span>Returned</span><strong>${assigned.filter((r) => r.status === 'Returned').length}</strong></article>`;
+  $('#review-queue').innerHTML = pending.map((r) => `<article class="review-card"><div><h3>${r.courseCode} · ${r.courseTitle}</h3><p>${r.reference} · ${r.examType}</p><div class="review-meta"><span>${r.academicArea}</span><span>${r.tos.totalItems} TQ items</span><span>Needed ${formatDate(r.neededBy)}</span></div></div><button class="primary" data-id="${r.id}">Review TOS & TQ</button></article>`).join('') || '<p class="empty">No submissions are waiting for your approval.</p>';
 }
 
 function renderDashboard() {
@@ -51,11 +81,14 @@ function toast(message) {
 function openRequest(id) {
   const r = requests.find((item) => item.id === Number(id));
   if (!r) return;
-  const transitions = { Submitted: ['Area Coordinator Review', 'Returned'], 'Area Coordinator Review': ['Dean Review', 'Returned'], 'Dean Review': ['Approved', 'Returned'], Approved: ['Printing'], Printing: ['Ready'], Ready: ['Released'], Returned: ['Submitted'] };
   const tos = r.tos || {};
   const matrix = [['Remembering',tos.remembering],['Understanding',tos.understanding],['Applying',tos.applying],['Analyzing',tos.analyzing],['Evaluating',tos.evaluating],['Creating',tos.creating]];
   const approvals = r.approvals || { coordinator:{}, dean:{} };
-  $('#modal-content').innerHTML = `<p class="eyebrow">${r.reference}</p><h2>${r.courseCode} · ${r.courseTitle}</h2>${badge(r.status)}<div class="detail-grid"><div><small>Examination</small><strong>${r.examType}</strong></div><div><small>Department</small><strong>${r.department}</strong></div><div><small>Print quantity</small><strong>${r.copies} copies · ${r.pages} pages each</strong></div><div><small>TOS items</small><strong>${tos.totalItems || 50} test items</strong></div><div><small>Exam schedule</small><strong>${formatDate(r.examDate)}</strong></div><div><small>Needed by</small><strong>${formatDate(r.neededBy)}</strong></div><div><small>Learning outcomes</small><strong>${tos.outcomes || 'Legacy request — add during revision'}</strong></div><div><small>Content coverage</small><strong>${tos.coverage || 'Legacy request — add during revision'}</strong></div></div><p class="eyebrow">COGNITIVE-LEVEL DISTRIBUTION</p><div class="tos-matrix">${matrix.map(([label,value]) => `<div><strong>${value ?? 0}%</strong><small>${label}</small></div>`).join('')}</div><div class="approval-records"><div class="approval-record ${approvals.coordinator.approvedAt ? 'approved' : ''}"><small>Area Coordinator</small><strong>${approvals.coordinator.name || 'Awaiting approval'}</strong>${approvals.coordinator.notes ? `<small>${approvals.coordinator.notes}</small>` : ''}</div><div class="approval-record ${approvals.dean.approvedAt ? 'approved' : ''}"><small>Dean</small><strong>${approvals.dean.name || 'Awaiting approval'}</strong>${approvals.dean.notes ? `<small>${approvals.dean.notes}</small>` : ''}</div></div><div class="workflow-actions">${(transitions[r.status] || []).map((next) => `<button class="${next === 'Returned' ? 'secondary' : 'primary'}" data-transition="${next}" data-id="${r.id}">${next === 'Dean Review' ? 'Approve as Area Coordinator' : next === 'Approved' ? 'Approve as Dean' : next === 'Returned' ? 'Return for revision' : `Mark ${next}`}</button>`).join('') || '<span class="muted">Workflow complete</span>'}</div>`;
+  const coordinator = approvals.coordinator; const dean = approvals.dean;
+  const permitted = currentRole === 'dean' && r.status === 'Dean Review' ? ['Approved','Returned'] : ['biology','mathematics'].includes(currentRole) && r.status === 'Area Coordinator Review' && r.academicArea === roleConfig[currentRole].area ? ['Dean Review','Returned'] : currentRole === 'faculty' && ['Submitted','Returned'].includes(r.status) ? [r.status === 'Submitted' ? 'Area Coordinator Review' : 'Submitted'] : [];
+  const approvalNext = permitted.find((next) => ['Dean Review','Approved'].includes(next));
+  const actions = approvalNext ? `<form id="approval-form" class="review-form" data-id="${r.id}" data-next="${approvalNext}"><label>Approver full name<input name="approverName" required placeholder="Enter your official name"/></label><label>Comments on the TOS<textarea name="tosComment" rows="2" required placeholder="Comment on outcomes, coverage, and cognitive distribution"></textarea></label><label>Comments on the TQ<textarea name="tqComment" rows="2" required placeholder="Comment on test questions, quality, and alignment"></textarea></label><label>Attach signature image<input name="signature" type="file" accept="image/png,image/jpeg,image/webp" required/></label><div class="form-actions">${permitted.includes('Returned') ? `<button type="button" class="secondary" data-transition="Returned" data-id="${r.id}">Return for revision</button>` : ''}<button class="primary" type="submit">${currentRole === 'dean' ? 'Sign and approve' : 'Sign and endorse to Dean'}</button></div></form>` : `<div class="workflow-actions">${permitted.map((next) => `<button class="primary" data-transition="${next}" data-id="${r.id}">Send to ${next}</button>`).join('') || '<span class="muted">Open the assigned reviewer dashboard to take action.</span>'}</div>`;
+  $('#modal-content').innerHTML = `<p class="eyebrow">${r.reference} · ${r.academicArea || 'Biology and Chemistry'}</p><h2>${r.courseCode} · ${r.courseTitle}</h2>${badge(r.status)}<div class="detail-grid"><div><small>Examination</small><strong>${r.examType}</strong></div><div><small>Department</small><strong>${r.department}</strong></div><div><small>Print quantity</small><strong>${r.copies} copies · ${r.pages} pages each</strong></div><div><small>TQ items</small><strong>${tos.totalItems || 50} test questions</strong></div><div><small>Exam schedule</small><strong>${formatDate(r.examDate)}</strong></div><div><small>Needed by</small><strong>${formatDate(r.neededBy)}</strong></div><div><small>Learning outcomes</small><strong>${tos.outcomes || 'Legacy request — add during revision'}</strong></div><div><small>Content coverage</small><strong>${tos.coverage || 'Legacy request — add during revision'}</strong></div></div><p class="eyebrow">TOS COGNITIVE-LEVEL DISTRIBUTION</p><div class="tos-matrix">${matrix.map(([label,value]) => `<div><strong>${value ?? 0}%</strong><small>${label}</small></div>`).join('')}</div><div class="approval-records"><div class="approval-record ${coordinator.approvedAt ? 'approved' : ''}"><small>Area Coordinator</small><strong>${coordinator.name || 'Awaiting approval'}</strong>${coordinator.tosComment ? `<small>TOS: ${coordinator.tosComment}</small>` : ''}${coordinator.tqComment ? `<small>TQ: ${coordinator.tqComment}</small>` : ''}${coordinator.signature ? `<img class="signature-preview" src="${coordinator.signature}" alt="Area Coordinator signature"/>` : ''}</div><div class="approval-record ${dean.approvedAt ? 'approved' : ''}"><small>Dean</small><strong>${dean.name || 'Awaiting approval'}</strong>${dean.tosComment ? `<small>TOS: ${dean.tosComment}</small>` : ''}${dean.tqComment ? `<small>TQ: ${dean.tqComment}</small>` : ''}${dean.signature ? `<img class="signature-preview" src="${dean.signature}" alt="Dean signature"/>` : ''}</div></div>${actions}`;
   $('#modal').hidden = false;
 }
 
@@ -65,7 +98,8 @@ async function load() {
   renderTable();
 }
 
-$$('[data-view]').forEach((button) => button.addEventListener('click', () => showView(button.dataset.view)));
+$$('[data-view]').forEach((button) => button.addEventListener('click', () => { currentRole = 'faculty'; showView(button.dataset.view); }));
+$$('.role-nav').forEach((button) => button.addEventListener('click', () => openRoleDashboard(button.dataset.role)));
 document.addEventListener('click', (event) => {
   const go = event.target.closest('[data-go]');
   const opener = event.target.closest('[data-id]');
@@ -82,15 +116,23 @@ $('#modal-content').addEventListener('click', async (event) => {
   const button = event.target.closest('[data-transition]');
   if (!button) return;
   try {
-    const approvalRequired = ['Dean Review', 'Approved'].includes(button.dataset.transition);
-    const role = button.dataset.transition === 'Dean Review' ? 'Area Coordinator' : 'Dean';
-    const approverName = approvalRequired ? window.prompt(`${role} full name:`) : '';
-    if (approvalRequired && !approverName) return;
-    const notes = approvalRequired ? (window.prompt(`${role} approval notes (optional):`) || '') : '';
-    await api(`/requests/${button.dataset.id}/status`, { method: 'PATCH', body: JSON.stringify({ status: button.dataset.transition, approverName, notes }) });
+    await api(`/requests/${button.dataset.id}/status`, { method: 'PATCH', body: JSON.stringify({ status: button.dataset.transition }) });
     $('#modal').hidden = true;
     await load();
+    if (currentRole !== 'faculty') renderReviewDashboard();
     toast(`Request moved to ${button.dataset.transition}`);
+  } catch (error) { toast(error.message); }
+});
+$('#modal-content').addEventListener('submit', async (event) => {
+  if (event.target.id !== 'approval-form') return;
+  event.preventDefault();
+  const form = event.target; const file = form.signature.files[0];
+  if (!file || file.size > 1_000_000) return toast('Attach a signature image smaller than 1 MB');
+  const signatureData = await new Promise((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(reader.result); reader.onerror = reject; reader.readAsDataURL(file); });
+  const values = Object.fromEntries(new FormData(form));
+  try {
+    await api(`/requests/${form.dataset.id}/status`, { method: 'PATCH', body: JSON.stringify({ status: form.dataset.next, approverName: values.approverName, tosComment: values.tosComment, tqComment: values.tqComment, signatureData }) });
+    $('#modal').hidden = true; await load(); renderReviewDashboard(); toast('Signed approval recorded successfully');
   } catch (error) { toast(error.message); }
 });
 $('#request-form').addEventListener('submit', async (event) => {

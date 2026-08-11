@@ -15,6 +15,10 @@
         <button class="nav-item active" data-view="dashboard">⌂ <span>Dashboard</span></button>
         <button class="nav-item" data-view="requests">▤ <span>Print Requests</span></button>
         <button class="nav-item" data-view="new">＋ <span>New Request</span></button>
+        <p class="nav-label">REVIEW WORKSPACES</p>
+        <button class="nav-item role-nav" data-role="biology">◉ <span>Biology & Chemistry</span></button>
+        <button class="nav-item role-nav" data-role="mathematics">△ <span>Mathematics & Physics</span></button>
+        <button class="nav-item role-nav" data-role="dean">♜ <span>Dean Dashboard</span></button>
       </nav>
       <div class="sidebar-foot"><span class="avatar">JC</span><div><strong>Juan Dela Cruz</strong><small>Faculty Member</small></div></div>
     </aside>
@@ -38,7 +42,7 @@
       <section id="new" class="view">
         <div class="form-layout"><div><p class="eyebrow">NEW PRINT JOB</p><h2>Examination printing request</h2><p class="muted">Provide final, proofread details. Submitted requests enter the department review queue.</p></div><form id="request-form" class="panel form-panel">
           <div class="form-section"><span>01</span><div><h3>Course information</h3><p>Identify the subject and examination period.</p></div></div>
-          <div class="fields"><label>Course code<input name="courseCode" required placeholder="e.g. IT 301" maxlength="20"/></label><label>Course title<input name="courseTitle" required placeholder="e.g. Web Systems" maxlength="120"/></label><label>Examination<select name="examType" required><option value="">Select period</option><option>Preliminary Examination</option><option>Midterm Examination</option><option>Final Examination</option><option>Special Examination</option></select></label><label>Department<input name="department" required value="College of Information Technology" maxlength="120"/></label></div>
+          <div class="fields"><label>Course code<input name="courseCode" required placeholder="e.g. BIO 301" maxlength="20"/></label><label>Course title<input name="courseTitle" required placeholder="e.g. Molecular Biology" maxlength="120"/></label><label>Examination<select name="examType" required><option value="">Select period</option><option>Preliminary Examination</option><option>Midterm Examination</option><option>Final Examination</option><option>Special Examination</option></select></label><label>Department<input name="department" required value="College of Arts and Sciences" maxlength="120"/></label><label class="wide">Academic area / approving coordinator<select name="academicArea" required><option value="Biology and Chemistry">Biology and Chemistry Area</option><option value="Mathematics and Physics">Mathematics and Physics Area</option></select></label></div>
           <div class="form-section"><span>02</span><div><h3>Table of Specifications</h3><p>Define the learning alignment and cognitive-level distribution for approval.</p></div></div>
           <div class="fields"><label class="wide">Course learning outcomes<textarea name="tosOutcomes" rows="3" required maxlength="1000" placeholder="List the outcomes assessed by this examination"></textarea></label><label class="wide">Content coverage / topics<textarea name="tosCoverage" rows="3" required maxlength="1200" placeholder="List the topics, competencies, and relative emphasis"></textarea></label><label>Total test items<input name="tosTotalItems" type="number" required min="10" max="200" value="50"/></label><label>Remembering %<input class="tos-percent" name="tosRemembering" type="number" required min="0" max="100" value="20"/></label><label>Understanding %<input class="tos-percent" name="tosUnderstanding" type="number" required min="0" max="100" value="20"/></label><label>Applying %<input class="tos-percent" name="tosApplying" type="number" required min="0" max="100" value="20"/></label><label>Analyzing %<input class="tos-percent" name="tosAnalyzing" type="number" required min="0" max="100" value="20"/></label><label>Evaluating %<input class="tos-percent" name="tosEvaluating" type="number" required min="0" max="100" value="10"/></label><label>Creating %<input class="tos-percent" name="tosCreating" type="number" required min="0" max="100" value="10"/></label><div id="tos-total" class="wide tos-total">Cognitive-level distribution: <strong>100%</strong></div></div>
           <div class="form-section"><span>03</span><div><h3>Printing requirements</h3><p>Set the quantity and required schedule.</p></div></div>
@@ -46,6 +50,12 @@
           <div class="attest"><input id="attest" type="checkbox" required/><label for="attest">I confirm that the examination details are final and the submitted quantity is accurate.</label></div>
           <div class="form-actions"><button type="button" class="secondary" data-go="dashboard">Cancel</button><button class="primary" type="submit">Submit request</button></div>
         </form></div>
+      </section>
+
+      <section id="review" class="view">
+        <div class="review-hero"><div><p class="eyebrow" id="review-eyebrow">ACADEMIC REVIEW WORKSPACE</p><h2 id="review-title">Area Coordinator Dashboard</h2><p id="review-description">Review faculty TOS and TQ submissions assigned to your academic area.</p></div><div class="review-count"><strong id="review-pending">0</strong><small>Pending review</small></div></div>
+        <div id="review-stats" class="stats"></div>
+        <section class="panel"><div class="panel-head"><div><p class="eyebrow">ASSIGNED SUBMISSIONS</p><h2>Approval queue</h2></div><span id="review-role-badge" class="badge">Coordinator</span></div><div id="review-queue" class="review-queue"></div></section>
       </section>
     </main>
     <div id="modal" class="modal" hidden><div class="modal-card"><button id="modal-close" class="close">×</button><div id="modal-content"></div></div></div>

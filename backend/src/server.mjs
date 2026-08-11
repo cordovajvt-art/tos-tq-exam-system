@@ -23,7 +23,7 @@ async function body(request) {
 }
 
 function validate(input) {
-  const required = ['courseCode','courseTitle','examType','department','examDate','neededBy','tosOutcomes','tosCoverage'];
+  const required = ['courseCode','courseTitle','examType','department','academicArea','examDate','neededBy','tosOutcomes','tosCoverage'];
   for (const key of required) if (!String(input[key] || '').trim()) return `${key} is required`;
   if (!Number.isInteger(input.copies) || input.copies < 1 || input.copies > 1000) return 'Copies must be between 1 and 1000';
   if (!Number.isInteger(input.pages) || input.pages < 1 || input.pages > 100) return 'Pages must be between 1 and 100';
@@ -32,6 +32,7 @@ function validate(input) {
   const levels = ['tosRemembering','tosUnderstanding','tosApplying','tosAnalyzing','tosEvaluating','tosCreating'];
   if (levels.some((key) => !Number.isInteger(input[key]) || input[key] < 0 || input[key] > 100)) return 'Each cognitive level must be between 0 and 100 percent';
   if (levels.reduce((sum, key) => sum + input[key], 0) !== 100) return 'TOS cognitive-level percentages must total 100%';
+  if (!['Biology and Chemistry', 'Mathematics and Physics'].includes(input.academicArea)) return 'Select a valid academic area';
 }
 
 async function api(request, response, url) {
@@ -44,7 +45,7 @@ async function api(request, response, url) {
     const year = new Date().getFullYear();
     const sequence = Number(db.prepare('SELECT COALESCE(MAX(id),0)+1 next FROM requests').get().next);
     const reference = `TQ-${year}-${String(sequence).padStart(4, '0')}`;
-    const result = db.prepare('INSERT INTO requests (reference,course_code,course_title,exam_type,department,copies,pages,exam_date,needed_by,notes,tos_outcomes,tos_coverage,tos_total_items,tos_remembering,tos_understanding,tos_applying,tos_analyzing,tos_evaluating,tos_creating) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)').run(reference,input.courseCode.trim(),input.courseTitle.trim(),input.examType.trim(),input.department.trim(),input.copies,input.pages,input.examDate,input.neededBy,String(input.notes || '').trim(),input.tosOutcomes.trim(),input.tosCoverage.trim(),input.tosTotalItems,input.tosRemembering,input.tosUnderstanding,input.tosApplying,input.tosAnalyzing,input.tosEvaluating,input.tosCreating);
+    const result = db.prepare('INSERT INTO requests (reference,course_code,course_title,exam_type,department,academic_area,copies,pages,exam_date,needed_by,notes,tos_outcomes,tos_coverage,tos_total_items,tos_remembering,tos_understanding,tos_applying,tos_analyzing,tos_evaluating,tos_creating) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)').run(reference,input.courseCode.trim(),input.courseTitle.trim(),input.examType.trim(),input.department.trim(),input.academicArea,input.copies,input.pages,input.examDate,input.neededBy,String(input.notes || '').trim(),input.tosOutcomes.trim(),input.tosCoverage.trim(),input.tosTotalItems,input.tosRemembering,input.tosUnderstanding,input.tosApplying,input.tosAnalyzing,input.tosEvaluating,input.tosCreating);
     db.prepare('INSERT INTO status_history (request_id,from_status,to_status) VALUES (?,NULL,?)').run(result.lastInsertRowid,'Submitted');
     return json(response, 201, toRequest(db.prepare('SELECT * FROM requests WHERE id=?').get(result.lastInsertRowid)));
   }
@@ -55,10 +56,12 @@ async function api(request, response, url) {
     if (!(transitions[current.status] || []).includes(input.status)) return json(response, 409, { error: `Cannot move from ${current.status} to ${input.status}` });
     if (input.status === 'Dean Review' && !String(input.approverName || '').trim()) return json(response, 400, { error: 'Area coordinator name is required' });
     if (input.status === 'Approved' && !String(input.approverName || '').trim()) return json(response, 400, { error: 'Dean name is required' });
+    if (['Dean Review', 'Approved'].includes(input.status) && !/^data:image\/(png|jpeg|webp);base64,/.test(String(input.signatureData || ''))) return json(response, 400, { error: 'A PNG, JPEG, or WebP signature image is required for approval' });
+    if (String(input.signatureData || '').length > 1_400_000) return json(response, 413, { error: 'Signature image must be smaller than 1 MB' });
     db.exec('BEGIN');
     try {
-      if (input.status === 'Dean Review') db.prepare('UPDATE requests SET status=?,coordinator_name=?,coordinator_notes=?,coordinator_approved_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE id=?').run(input.status,input.approverName.trim(),String(input.notes || '').trim(),id);
-      else if (input.status === 'Approved') db.prepare('UPDATE requests SET status=?,dean_name=?,dean_notes=?,dean_approved_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE id=?').run(input.status,input.approverName.trim(),String(input.notes || '').trim(),id);
+      if (input.status === 'Dean Review') db.prepare('UPDATE requests SET status=?,coordinator_name=?,coordinator_tos_comment=?,coordinator_tq_comment=?,coordinator_signature=?,coordinator_approved_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE id=?').run(input.status,input.approverName.trim(),String(input.tosComment || '').trim(),String(input.tqComment || '').trim(),input.signatureData,id);
+      else if (input.status === 'Approved') db.prepare('UPDATE requests SET status=?,dean_name=?,dean_tos_comment=?,dean_tq_comment=?,dean_signature=?,dean_approved_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE id=?').run(input.status,input.approverName.trim(),String(input.tosComment || '').trim(),String(input.tqComment || '').trim(),input.signatureData,id);
       else db.prepare('UPDATE requests SET status=?,updated_at=CURRENT_TIMESTAMP WHERE id=?').run(input.status,id);
       db.prepare('INSERT INTO status_history (request_id,from_status,to_status) VALUES (?,?,?)').run(id,current.status,input.status); db.exec('COMMIT');
     } catch (error) { db.exec('ROLLBACK'); throw error; }

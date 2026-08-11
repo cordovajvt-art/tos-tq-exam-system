@@ -8,6 +8,8 @@ No package download or external database is required. The application uses Node'
 
 The application automatically migrates existing request databases to add TOS fields and separate Area Coordinator and Dean approval records.
 
+Use the review-workspace links in the sidebar to preview the Biology & Chemistry coordinator, Mathematics & Physics coordinator, and Dean dashboards. Coordinator queues are filtered by the academic area selected on the faculty request. Signed approvals store separate TOS and TQ comments plus an image signature of no more than 1 MB.
+
 ## Local run
 
 ```bash

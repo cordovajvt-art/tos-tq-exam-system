@@ -25,6 +25,8 @@ test('database includes TOS and two-stage approval fields', () => {
   assert.equal(request.tos.remembering + request.tos.understanding + request.tos.applying + request.tos.analyzing + request.tos.evaluating + request.tos.creating, 100);
   assert.equal(request.approvals.coordinator.name, '');
   assert.equal(request.approvals.dean.name, '');
+  assert.equal(request.academicArea, 'Biology and Chemistry');
+  assert.equal(request.approvals.coordinator.signature, '');
   db.close();
 });
 
