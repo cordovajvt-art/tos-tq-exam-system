@@ -13,6 +13,7 @@ CREATE TABLE requests (
   notes TEXT NOT NULL DEFAULT '',
   tos_outcomes TEXT NOT NULL,
   tos_coverage TEXT NOT NULL,
+  tos_rows TEXT NOT NULL DEFAULT '[]',
   tos_total_items INTEGER NOT NULL CHECK (tos_total_items BETWEEN 10 AND 200),
   tos_remembering INTEGER NOT NULL,
   tos_understanding INTEGER NOT NULL,

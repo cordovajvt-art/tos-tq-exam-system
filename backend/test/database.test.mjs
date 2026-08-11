@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createDatabase, toRequest, transitions } from '../src/database.mjs';
+import { summarizeTos } from '../src/tos.mjs';
 
 test('database creates and seeds examination requests', () => {
   const db = createDatabase(':memory:');
@@ -34,4 +35,16 @@ test('database constraints reject invalid print quantities', () => {
   const db = createDatabase(':memory:');
   assert.throws(() => db.prepare("UPDATE requests SET copies=0 WHERE id=1").run());
   db.close();
+});
+
+test('TOS template calculations derive row and Bloom percentages', () => {
+  const summary = summarizeTos([
+    { topicObjectives:'Cell structure',hours:4,testType:'Multiple Choice',remembering:5,understanding:3,applying:2,analyzing:0,evaluating:0,creating:0,points:10 },
+    { topicObjectives:'Microbial growth',hours:6,testType:'Mixed Format',remembering:1,understanding:3,applying:3,analyzing:2,evaluating:1,creating:0,points:20 },
+  ]);
+  assert.equal(summary.totalItems, 20);
+  assert.equal(summary.normalizedRows[0].hoursPercentage, 40);
+  assert.equal(summary.normalizedRows[1].pointsPercentage, 66.67);
+  assert.equal(summary.percentages.remembering, 30);
+  assert.equal(Object.values(summary.percentages).reduce((sum,value) => sum + value, 0), 100);
 });

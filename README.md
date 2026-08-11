@@ -5,8 +5,10 @@ A runnable replacement for submitting and tracking secure examination-printing r
 ## Included
 
 - Responsive faculty dashboard and searchable request register
-- Integrated Table of Specifications form with learning outcomes, coverage, total items, and Bloom's cognitive-level distribution
-- Examination request submission with schedule, quantity, and 100% TOS-distribution validation
+- Template-based Table of Specifications grid matching the supplied institutional PDF
+- Per-topic objectives, teaching hours, type of test, six Bloom item counts, points, and dynamic rows
+- Automatic row totals, hour percentages, point percentages, total items, and Bloom's Taxonomy percentages
+- Server-side recalculation so submitted totals cannot be manipulated in the browser
 - Controlled approval workflow: Submitted → Area Coordinator Review → Dean Review → Approved → Printing → Ready → Released
 - Named Area Coordinator and Dean approval records with notes and timestamps
 - Separate dashboards for the Dean, Biology & Chemistry Area Coordinator, and Mathematics & Physics Area Coordinator

@@ -3,6 +3,7 @@ import { readFile, stat } from 'node:fs/promises';
 import { extname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createDatabase, toRequest, transitions } from './database.mjs';
+import { bloomLevels, summarizeTos } from './tos.mjs';
 
 const root = resolve(fileURLToPath(new URL('../..', import.meta.url)));
 const frontend = join(root, 'frontend/dist');
@@ -23,15 +24,23 @@ async function body(request) {
 }
 
 function validate(input) {
-  const required = ['courseCode','courseTitle','examType','department','academicArea','examDate','neededBy','tosOutcomes','tosCoverage'];
+  const required = ['courseCode','courseTitle','examType','department','academicArea','examDate','neededBy'];
   for (const key of required) if (!String(input[key] || '').trim()) return `${key} is required`;
   if (!Number.isInteger(input.copies) || input.copies < 1 || input.copies > 1000) return 'Copies must be between 1 and 1000';
   if (!Number.isInteger(input.pages) || input.pages < 1 || input.pages > 100) return 'Pages must be between 1 and 100';
   if (input.neededBy > input.examDate) return 'Needed-by date must not be after the exam date';
-  if (!Number.isInteger(input.tosTotalItems) || input.tosTotalItems < 10 || input.tosTotalItems > 200) return 'TOS total items must be between 10 and 200';
-  const levels = ['tosRemembering','tosUnderstanding','tosApplying','tosAnalyzing','tosEvaluating','tosCreating'];
-  if (levels.some((key) => !Number.isInteger(input[key]) || input[key] < 0 || input[key] > 100)) return 'Each cognitive level must be between 0 and 100 percent';
-  if (levels.reduce((sum, key) => sum + input[key], 0) !== 100) return 'TOS cognitive-level percentages must total 100%';
+  if (!Array.isArray(input.tosRows) || !input.tosRows.length || input.tosRows.length > 20) return 'Add between 1 and 20 TOS topic rows';
+  const levels = bloomLevels;
+  for (const [index, row] of input.tosRows.entries()) {
+    if (!String(row.topicObjectives || '').trim()) return `TOS row ${index + 1}: topic/objectives are required`;
+    if (!String(row.testType || '').trim()) return `TOS row ${index + 1}: type of test is required`;
+    if (!Number.isFinite(row.hours) || row.hours <= 0 || row.hours > 1000) return `TOS row ${index + 1}: hours must be greater than zero`;
+    if (!Number.isFinite(row.points) || row.points < 0 || row.points > 10000) return `TOS row ${index + 1}: points are invalid`;
+    if (levels.some((key) => !Number.isInteger(row[key]) || row[key] < 0 || row[key] > 200)) return `TOS row ${index + 1}: Bloom item counts must be whole numbers`;
+    if (levels.reduce((sum, key) => sum + row[key], 0) < 1) return `TOS row ${index + 1}: add at least one test item`;
+  }
+  const totalItems = input.tosRows.reduce((sum, row) => sum + levels.reduce((subtotal, key) => subtotal + row[key], 0), 0);
+  if (totalItems < 10 || totalItems > 200) return 'TOS must contain between 10 and 200 test items';
   if (!['Biology and Chemistry', 'Mathematics and Physics'].includes(input.academicArea)) return 'Select a valid academic area';
 }
 
@@ -42,10 +51,11 @@ async function api(request, response, url) {
   }
   if (url.pathname === '/api/requests' && request.method === 'POST') {
     const input = await body(request); const error = validate(input); if (error) return json(response, 400, { error });
+    const tos = summarizeTos(input.tosRows);
     const year = new Date().getFullYear();
     const sequence = Number(db.prepare('SELECT COALESCE(MAX(id),0)+1 next FROM requests').get().next);
     const reference = `TQ-${year}-${String(sequence).padStart(4, '0')}`;
-    const result = db.prepare('INSERT INTO requests (reference,course_code,course_title,exam_type,department,academic_area,copies,pages,exam_date,needed_by,notes,tos_outcomes,tos_coverage,tos_total_items,tos_remembering,tos_understanding,tos_applying,tos_analyzing,tos_evaluating,tos_creating) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)').run(reference,input.courseCode.trim(),input.courseTitle.trim(),input.examType.trim(),input.department.trim(),input.academicArea,input.copies,input.pages,input.examDate,input.neededBy,String(input.notes || '').trim(),input.tosOutcomes.trim(),input.tosCoverage.trim(),input.tosTotalItems,input.tosRemembering,input.tosUnderstanding,input.tosApplying,input.tosAnalyzing,input.tosEvaluating,input.tosCreating);
+    const result = db.prepare('INSERT INTO requests (reference,course_code,course_title,exam_type,department,academic_area,copies,pages,exam_date,needed_by,notes,tos_outcomes,tos_coverage,tos_rows,tos_total_items,tos_remembering,tos_understanding,tos_applying,tos_analyzing,tos_evaluating,tos_creating) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)').run(reference,input.courseCode.trim(),input.courseTitle.trim(),input.examType.trim(),input.department.trim(),input.academicArea,input.copies,input.pages,input.examDate,input.neededBy,String(input.notes || '').trim(),tos.normalizedRows.map((row) => row.topicObjectives).join('; '),tos.normalizedRows.map((row) => row.topicObjectives).join('; '),JSON.stringify(tos.normalizedRows),tos.totalItems,tos.percentages.remembering,tos.percentages.understanding,tos.percentages.applying,tos.percentages.analyzing,tos.percentages.evaluating,tos.percentages.creating);
     db.prepare('INSERT INTO status_history (request_id,from_status,to_status) VALUES (?,NULL,?)').run(result.lastInsertRowid,'Submitted');
     return json(response, 201, toRequest(db.prepare('SELECT * FROM requests WHERE id=?').get(result.lastInsertRowid)));
   }

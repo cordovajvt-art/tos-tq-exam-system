@@ -10,6 +10,8 @@ The application automatically migrates existing request databases to add TOS fie
 
 Use the review-workspace links in the sidebar to preview the Biology & Chemistry coordinator, Mathematics & Physics coordinator, and Dean dashboards. Coordinator queues are filtered by the academic area selected on the faculty request. Signed approvals store separate TOS and TQ comments plus an image signature of no more than 1 MB.
 
+The TOS editor follows the supplied landscape template: Topic/Objectives, hours, hours percentage, type of test, Remembering, Understanding, Applying, Analyzing, Evaluating, Creating, number of items, number of points, and points percentage. Faculty enter hours, points, and item counts; all percentages and totals are calculated in real time and recalculated by the API on submission.
+
 ## Local run
 
 ```bash
