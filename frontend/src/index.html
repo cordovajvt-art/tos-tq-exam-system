@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#173f3a" />
+    <title>TOS–TQ Examination Printing</title>
+    <link rel="stylesheet" href="/styles.css" />
+    <link rel="stylesheet" href="/tos.css" />
+  </head>
+  <body>
+    <aside class="sidebar">
+      <div class="brand"><span class="brand-mark">TQ</span><div><strong>ExamFlow</strong><small>TOS–TQ Printing</small></div></div>
+      <nav>
+        <button class="nav-item active" data-view="dashboard">⌂ <span>Dashboard</span></button>
+        <button class="nav-item" data-view="requests">▤ <span>Print Requests</span></button>
+        <button class="nav-item" data-view="new">＋ <span>New Request</span></button>
+        <p class="nav-label">REVIEW WORKSPACES</p>
+        <button class="nav-item role-nav" data-role="biology">◉ <span>Biology & Chemistry</span></button>
+        <button class="nav-item role-nav" data-role="mathematics">△ <span>Mathematics & Physics</span></button>
+        <button class="nav-item role-nav" data-role="dean">♜ <span>Dean Dashboard</span></button>
+      </nav>
+      <div class="sidebar-foot"><span class="avatar">JC</span><div><strong>Juan Dela Cruz</strong><small>Faculty Member</small></div></div>
+    </aside>
+    <main>
+      <header><button id="menu" aria-label="Menu">☰</button><div><p class="eyebrow">ACADEMIC SERVICES</p><h1 id="page-title">Printing overview</h1></div><div class="header-actions"><span class="status-dot"></span><span>System online</span><button id="new-top" class="primary">New request</button></div></header>
+
+      <section id="dashboard" class="view active">
+        <div class="welcome"><div><p class="eyebrow">MONDAY, 11 AUGUST</p><h2>Good day, Juan.</h2><p>Prepare your TOS and track approvals through secure printing.</p></div><div class="seal">✓<small>Secure<br>printing</small></div></div>
+        <div id="stats" class="stats"></div>
+        <div class="content-grid">
+          <section class="panel"><div class="panel-head"><div><p class="eyebrow">CURRENT ACTIVITY</p><h2>Recent requests</h2></div><button class="text-button" data-go="requests">View all →</button></div><div id="recent" class="request-list"></div></section>
+          <section class="panel timeline-panel"><div class="panel-head"><div><p class="eyebrow">APPROVAL GUIDE</p><h2>How it works</h2></div></div><ol class="timeline"><li><b>1</b><div><strong>Submit TOS and request</strong><span>Define outcomes, coverage, cognitive levels, and print quantity.</span></div></li><li><b>2</b><div><strong>Area Coordinator approval</strong><span>The coordinator checks alignment and endorses the TOS.</span></div></li><li><b>3</b><div><strong>Dean approval</strong><span>The dean gives final academic authorization.</span></div></li><li><b>4</b><div><strong>Secure printing and release</strong><span>Approved materials enter the protected print queue.</span></div></li></ol></section>
+        </div>
+      </section>
+
+      <section id="requests" class="view">
+        <div class="section-head"><div><p class="eyebrow">REQUEST REGISTER</p><h2>All printing requests</h2></div><div class="filters"><input id="search" placeholder="Search course or reference…"/><select id="status-filter"><option value="">All statuses</option><option>Submitted</option><option>Area Coordinator Review</option><option>Dean Review</option><option>Approved</option><option>Printing</option><option>Ready</option><option>Released</option><option>Returned</option></select></div></div>
+        <section class="panel table-wrap"><table><thead><tr><th>Reference</th><th>Course & exam</th><th>Copies</th><th>Schedule</th><th>Status</th><th></th></tr></thead><tbody id="request-table"></tbody></table></section>
+      </section>
+
+      <section id="new" class="view">
+        <div class="form-layout"><div><p class="eyebrow">NEW PRINT JOB</p><h2>Examination printing request</h2><p class="muted">Provide final, proofread details. Submitted requests enter the department review queue.</p></div><form id="request-form" class="panel form-panel">
+          <div class="form-section"><span>01</span><div><h3>Course information</h3><p>Identify the subject and examination period.</p></div></div>
+          <div class="fields"><label>Course code<input name="courseCode" required placeholder="e.g. BIO 301" maxlength="20"/></label><label>Course title<input name="courseTitle" required placeholder="e.g. Molecular Biology" maxlength="120"/></label><label>Examination<select name="examType" required><option value="">Select period</option><option>Preliminary Examination</option><option>Midterm Examination</option><option>Final Examination</option><option>Special Examination</option></select></label><label>Department<input name="department" required value="College of Arts and Sciences" maxlength="120"/></label><label class="wide">Academic area / approving coordinator<select name="academicArea" required><option value="Biology and Chemistry">Biology and Chemistry Area</option><option value="Mathematics and Physics">Mathematics and Physics Area</option></select></label></div>
+          <div class="form-section"><span>02</span><div><h3>Table of Specifications</h3><p>Fill in the attached-template format. Percentages and Bloom's Taxonomy distribution are calculated automatically.</p></div></div>
+          <div class="tos-sheet-wrap"><table class="tos-sheet"><thead><tr><th rowspan="2">Topic / Objectives</th><th rowspan="2">No. of hrs.</th><th rowspan="2">%</th><th rowspan="2">Type of Test</th><th colspan="6">Bloom's Taxonomy - No. of Items</th><th rowspan="2">No. of Items</th><th rowspan="2">No. of Points</th><th rowspan="2">%</th><th rowspan="2"></th></tr><tr><th title="Remembering">R</th><th title="Understanding">U</th><th title="Applying">Ap</th><th title="Analyzing">An</th><th title="Evaluating">E</th><th title="Creating">C</th></tr></thead><tbody id="tos-rows"></tbody><tfoot id="tos-totals"></tfoot></table></div>
+          <div class="tos-toolbar"><button id="add-tos-row" type="button" class="secondary">＋ Add topic row</button><span>R - Remembering · U - Understanding · Ap - Applying · An - Analyzing · E - Evaluating · C - Creating</span></div>
+          <div id="bloom-summary" class="bloom-summary"></div>
+          <div class="form-section"><span>03</span><div><h3>Printing requirements</h3><p>Set the quantity and required schedule.</p></div></div>
+          <div class="fields"><label>Number of copies<input name="copies" type="number" required min="1" max="1000" value="40"/></label><label>Pages per copy<input name="pages" type="number" required min="1" max="100" value="4"/></label><label>Exam date<input name="examDate" type="date" required/></label><label>Needed by<input name="neededBy" type="date" required/></label><label class="wide">Special instructions<textarea name="notes" rows="3" maxlength="500" placeholder="Paper size, stapling, color pages, or handling notes"></textarea></label></div>
+          <div class="attest"><input id="attest" type="checkbox" required/><label for="attest">I confirm that the examination details are final and the submitted quantity is accurate.</label></div>
+          <div class="form-actions"><button type="button" class="secondary" data-go="dashboard">Cancel</button><button class="primary" type="submit">Submit request</button></div>
+        </form></div>
+      </section>
+
+      <section id="review" class="view">
+        <div class="review-hero"><div><p class="eyebrow" id="review-eyebrow">ACADEMIC REVIEW WORKSPACE</p><h2 id="review-title">Area Coordinator Dashboard</h2><p id="review-description">Review faculty TOS and TQ submissions assigned to your academic area.</p></div><div class="review-count"><strong id="review-pending">0</strong><small>Pending review</small></div></div>
+        <div id="review-stats" class="stats"></div>
+        <section class="panel"><div class="panel-head"><div><p class="eyebrow">ASSIGNED SUBMISSIONS</p><h2>Approval queue</h2></div><span id="review-role-badge" class="badge">Coordinator</span></div><div id="review-queue" class="review-queue"></div></section>
+      </section>
+    </main>
+    <div id="modal" class="modal" hidden><div class="modal-card"><button id="modal-close" class="close">×</button><div id="modal-content"></div></div></div>
+    <div id="toast" class="toast" role="status"></div>
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>
