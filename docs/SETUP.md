@@ -1,24 +1,29 @@
-# Local Development Setup
+# Local and production setup
 
-## Prerequisites
-- Docker & Docker Compose
-- Node.js 20+ (for local development without Docker)
-- PostgreSQL 15+ (if not using Docker)
+## Requirements
 
-## Quick Start (Docker)
+- Node.js 22.5 or newer, or Docker
+
+No package download or external database is required. The application uses Node's built-in SQLite support and stores its database at `data/exam-system.db`.
+
+## Local run
 
 ```bash
-# 1. Clone the repository
-git clone &lt;repo-url&gt;
-cd tos-tq-exam-system
-
-# 2. Create environment file
 cp .env.example .env
+npm run build
+npm start
+```
 
-# 3. Start all services
-docker-compose -f infra/docker/docker-compose.yml up --build
+Open <http://localhost:4173>. Run checks with `npm test`.
 
-# 4. Access the application
-# Frontend: http://localhost:5173
-# Backend API: http://localhost:3000/api/v1
-# API Docs: http://localhost:3000/api/docs
+## Docker
+
+```bash
+docker compose up --build -d
+```
+
+The named `exam_data` volume preserves requests between container replacements. The health endpoint is `/api/health`.
+
+## Production
+
+Build the included Dockerfile on any container host, publish port `4173`, mount persistent storage at `/app/data`, and terminate TLS at the platform load balancer. The GitHub Actions workflow verifies every change and publishes the `latest` image to GitHub Container Registry after pushes to `main`.

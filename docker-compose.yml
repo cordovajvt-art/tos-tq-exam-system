@@ -1,0 +1,15 @@
+services:
+  app:
+    build: .
+    ports:
+      - "4173:4173"
+    environment:
+      HOST: 0.0.0.0
+      PORT: 4173
+      DATABASE_PATH: /app/data/exam-system.db
+    volumes:
+      - exam_data:/app/data
+    restart: unless-stopped
+
+volumes:
+  exam_data:
