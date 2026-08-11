@@ -5,8 +5,10 @@ A runnable replacement for submitting and tracking secure examination-printing r
 ## Included
 
 - Responsive faculty dashboard and searchable request register
-- Examination request submission with schedule and quantity validation
-- Controlled workflow: Submitted → Under Review → Approved → Printing → Ready → Released
+- Integrated Table of Specifications form with learning outcomes, coverage, total items, and Bloom's cognitive-level distribution
+- Examination request submission with schedule, quantity, and 100% TOS-distribution validation
+- Controlled approval workflow: Submitted → Area Coordinator Review → Dean Review → Approved → Printing → Ready → Released
+- Named Area Coordinator and Dean approval records with notes and timestamps
 - Return-for-revision path and auditable status-history records
 - Persistent SQLite database with a documented schema
 - Health endpoint, automated tests, Docker image, Compose configuration, and GitHub Actions verification

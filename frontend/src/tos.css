@@ -1,0 +1,16 @@
+.tos-total { background:#edf4f0; border:1px solid #cbded6; border-radius:8px; padding:11px 13px; color:#45645d; font-size:11px; }
+.tos-total strong { color:#1f5d4f; }
+.tos-total.invalid { background:#f9e5e2; border-color:#e4b6b0; color:#913f37; }
+.approval-form { display:grid; gap:9px; width:100%; }
+.approval-form input, .approval-form textarea { width:100%; border:1px solid #ccd3cf; border-radius:8px; padding:10px; }
+.tos-matrix { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin:14px 0; }
+.tos-matrix div { background:#edf4f0; padding:9px; border-radius:7px; text-align:center; }
+.tos-matrix strong, .tos-matrix small { display:block; }
+.tos-matrix small { font-size:9px; color:#687873; margin-top:3px; }
+.approval-records { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:14px 0; }
+.approval-record { border:1px solid #dfe5e1; border-left:3px solid #d6a84b; border-radius:8px; padding:11px; }
+.approval-record.approved { border-left-color:#3f8a6a; }
+.approval-record small, .approval-record strong { display:block; }
+.approval-record small { color:#687873; font-size:9px; text-transform:uppercase; }
+.approval-record strong { margin-top:4px; font-size:11px; }
+@media(max-width:580px) { .tos-matrix { grid-template-columns:1fr 1fr; } .approval-records { grid-template-columns:1fr; } }

@@ -11,9 +11,21 @@ test('database creates and seeds examination requests', () => {
 });
 
 test('workflow permits only controlled status transitions', () => {
-  assert.deepEqual(transitions.Submitted, ['Under Review', 'Returned']);
+  assert.deepEqual(transitions.Submitted, ['Area Coordinator Review', 'Returned']);
+  assert.deepEqual(transitions['Area Coordinator Review'], ['Dean Review', 'Returned']);
+  assert.deepEqual(transitions['Dean Review'], ['Approved', 'Returned']);
   assert.deepEqual(transitions.Ready, ['Released']);
   assert.deepEqual(transitions.Released, []);
+});
+
+test('database includes TOS and two-stage approval fields', () => {
+  const db = createDatabase(':memory:');
+  const request = toRequest(db.prepare('SELECT * FROM requests WHERE id=1').get());
+  assert.equal(request.tos.totalItems, 50);
+  assert.equal(request.tos.remembering + request.tos.understanding + request.tos.applying + request.tos.analyzing + request.tos.evaluating + request.tos.creating, 100);
+  assert.equal(request.approvals.coordinator.name, '');
+  assert.equal(request.approvals.dean.name, '');
+  db.close();
 });
 
 test('database constraints reject invalid print quantities', () => {

@@ -6,6 +6,8 @@
 
 No package download or external database is required. The application uses Node's built-in SQLite support and stores its database at `data/exam-system.db`.
 
+The application automatically migrates existing request databases to add TOS fields and separate Area Coordinator and Dean approval records.
+
 ## Local run
 
 ```bash

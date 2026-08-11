@@ -27,7 +27,7 @@ function showView(name) {
 function renderDashboard() {
   const groups = {
     Total: requests.length,
-    'In review': requests.filter((r) => ['Submitted', 'Under Review'].includes(r.status)).length,
+    'In review': requests.filter((r) => ['Submitted', 'Area Coordinator Review', 'Dean Review'].includes(r.status)).length,
     'In production': requests.filter((r) => ['Approved', 'Printing'].includes(r.status)).length,
     'Ready to claim': requests.filter((r) => r.status === 'Ready').length,
   };
@@ -51,8 +51,11 @@ function toast(message) {
 function openRequest(id) {
   const r = requests.find((item) => item.id === Number(id));
   if (!r) return;
-  const transitions = { Submitted: ['Under Review', 'Returned'], 'Under Review': ['Approved', 'Returned'], Approved: ['Printing'], Printing: ['Ready'], Ready: ['Released'], Returned: ['Submitted'] };
-  $('#modal-content').innerHTML = `<p class="eyebrow">${r.reference}</p><h2>${r.courseCode} · ${r.courseTitle}</h2>${badge(r.status)}<div class="detail-grid"><div><small>Examination</small><strong>${r.examType}</strong></div><div><small>Department</small><strong>${r.department}</strong></div><div><small>Print quantity</small><strong>${r.copies} copies · ${r.pages} pages each</strong></div><div><small>Exam schedule</small><strong>${formatDate(r.examDate)}</strong></div><div><small>Needed by</small><strong>${formatDate(r.neededBy)}</strong></div><div><small>Instructions</small><strong>${r.notes || 'None provided'}</strong></div></div><div class="workflow-actions">${(transitions[r.status] || []).map((next) => `<button class="${next === 'Returned' ? 'secondary' : 'primary'}" data-transition="${next}" data-id="${r.id}">${next === 'Returned' ? 'Return for revision' : `Mark ${next}`}</button>`).join('') || '<span class="muted">Workflow complete</span>'}</div>`;
+  const transitions = { Submitted: ['Area Coordinator Review', 'Returned'], 'Area Coordinator Review': ['Dean Review', 'Returned'], 'Dean Review': ['Approved', 'Returned'], Approved: ['Printing'], Printing: ['Ready'], Ready: ['Released'], Returned: ['Submitted'] };
+  const tos = r.tos || {};
+  const matrix = [['Remembering',tos.remembering],['Understanding',tos.understanding],['Applying',tos.applying],['Analyzing',tos.analyzing],['Evaluating',tos.evaluating],['Creating',tos.creating]];
+  const approvals = r.approvals || { coordinator:{}, dean:{} };
+  $('#modal-content').innerHTML = `<p class="eyebrow">${r.reference}</p><h2>${r.courseCode} · ${r.courseTitle}</h2>${badge(r.status)}<div class="detail-grid"><div><small>Examination</small><strong>${r.examType}</strong></div><div><small>Department</small><strong>${r.department}</strong></div><div><small>Print quantity</small><strong>${r.copies} copies · ${r.pages} pages each</strong></div><div><small>TOS items</small><strong>${tos.totalItems || 50} test items</strong></div><div><small>Exam schedule</small><strong>${formatDate(r.examDate)}</strong></div><div><small>Needed by</small><strong>${formatDate(r.neededBy)}</strong></div><div><small>Learning outcomes</small><strong>${tos.outcomes || 'Legacy request — add during revision'}</strong></div><div><small>Content coverage</small><strong>${tos.coverage || 'Legacy request — add during revision'}</strong></div></div><p class="eyebrow">COGNITIVE-LEVEL DISTRIBUTION</p><div class="tos-matrix">${matrix.map(([label,value]) => `<div><strong>${value ?? 0}%</strong><small>${label}</small></div>`).join('')}</div><div class="approval-records"><div class="approval-record ${approvals.coordinator.approvedAt ? 'approved' : ''}"><small>Area Coordinator</small><strong>${approvals.coordinator.name || 'Awaiting approval'}</strong>${approvals.coordinator.notes ? `<small>${approvals.coordinator.notes}</small>` : ''}</div><div class="approval-record ${approvals.dean.approvedAt ? 'approved' : ''}"><small>Dean</small><strong>${approvals.dean.name || 'Awaiting approval'}</strong>${approvals.dean.notes ? `<small>${approvals.dean.notes}</small>` : ''}</div></div><div class="workflow-actions">${(transitions[r.status] || []).map((next) => `<button class="${next === 'Returned' ? 'secondary' : 'primary'}" data-transition="${next}" data-id="${r.id}">${next === 'Dean Review' ? 'Approve as Area Coordinator' : next === 'Approved' ? 'Approve as Dean' : next === 'Returned' ? 'Return for revision' : `Mark ${next}`}</button>`).join('') || '<span class="muted">Workflow complete</span>'}</div>`;
   $('#modal').hidden = false;
 }
 
@@ -79,7 +82,12 @@ $('#modal-content').addEventListener('click', async (event) => {
   const button = event.target.closest('[data-transition]');
   if (!button) return;
   try {
-    await api(`/requests/${button.dataset.id}/status`, { method: 'PATCH', body: JSON.stringify({ status: button.dataset.transition }) });
+    const approvalRequired = ['Dean Review', 'Approved'].includes(button.dataset.transition);
+    const role = button.dataset.transition === 'Dean Review' ? 'Area Coordinator' : 'Dean';
+    const approverName = approvalRequired ? window.prompt(`${role} full name:`) : '';
+    if (approvalRequired && !approverName) return;
+    const notes = approvalRequired ? (window.prompt(`${role} approval notes (optional):`) || '') : '';
+    await api(`/requests/${button.dataset.id}/status`, { method: 'PATCH', body: JSON.stringify({ status: button.dataset.transition, approverName, notes }) });
     $('#modal').hidden = true;
     await load();
     toast(`Request moved to ${button.dataset.transition}`);
@@ -89,6 +97,7 @@ $('#request-form').addEventListener('submit', async (event) => {
   event.preventDefault();
   const values = Object.fromEntries(new FormData(event.target));
   values.copies = Number(values.copies); values.pages = Number(values.pages);
+  ['tosTotalItems','tosRemembering','tosUnderstanding','tosApplying','tosAnalyzing','tosEvaluating','tosCreating'].forEach((key) => { values[key] = Number(values[key]); });
   try {
     const created = await api('/requests', { method: 'POST', body: JSON.stringify(values) });
     event.target.reset();
@@ -104,5 +113,12 @@ $('[name="examDate"]').min = iso(today);
 $('[name="examDate"]').value = iso(new Date(today.getTime() + 14 * 86400000));
 $('[name="neededBy"]').min = iso(today);
 $('[name="neededBy"]').value = iso(new Date(today.getTime() + 10 * 86400000));
+
+function updateTosTotal() {
+  const total = $$('.tos-percent').reduce((sum, input) => sum + Number(input.value || 0), 0);
+  $('#tos-total').innerHTML = `Cognitive-level distribution: <strong>${total}%</strong>${total === 100 ? '' : ' — must total 100%'}`;
+  $('#tos-total').classList.toggle('invalid', total !== 100);
+}
+$$('.tos-percent').forEach((input) => input.addEventListener('input', updateTosTotal));
 
 load().catch((error) => toast(error.message));
